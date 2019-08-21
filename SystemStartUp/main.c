@@ -1,9 +1,9 @@
 /*
 ===============================================================================
- Name        : main.c
- Author      : $(Gabriel Valenzuela)
- Version     : 2.0
- Copyright   : $(MIT)
+ Name        : Secuencia_Sanchez.c
+ Author      : Salatin y Valenzuela
+ Version     :
+ Copyright   : $(copyright)
  Description : main definition
 ===============================================================================
 */
@@ -62,6 +62,22 @@ void Apagar_LedVerde(void);
 
 void Configurar_SwitchInterrupt(void);
 
+void delay_ms(uint32_t mili);
+
+void Prender_todos(void);
+
+void first_init(void);
+
+
+BOOL_8 EXTI_CheckXTIFlag(EXTI_LINE_ENUM EXTILine);
+
+/*!
+ * 100MHZ = 100*10e6;
+ * 10ns
+ * 1ms -> x ns
+ * 1000000
+ */
+
 BOOL_8 Verificar_LED(uint32_t PORT, uint32_t PIN_SELECT);
 
 void Apagar_todos(void);
@@ -74,19 +90,21 @@ void init(void);
 
 void SysTick_Handler(void){
 	//100ms
-	//100ms * 100 = 10000ms = 10s
+	//100ms * 50 = 50000ms = 5s
 	SYSTICK_ClearCounterFlag();
 
 	switch (flagOk) {
 		case 0:
 			counter++;
-			if(counter<100){
+			if(counter<50){
 				return;
 			}
 			else{
 				Apagar_todos();
-				Prender_LedRojo();
-				while(1);
+				while(1){
+					Prender_LedRojo();
+					Prender_LedAzul();
+				}
 			}
 			break;
 		case 1:
@@ -110,29 +128,28 @@ void EINT0_IRQHandler (){
 	if(~(Verificar_LED(PORT_ZERO, RED_LED)&Verificar_LED(PORT_THREE, BLUE_LED)&Verificar_LED(PORT_THREE, GREEN_LED))&&flagRGB==0){
 		Prender_LedRojo();
 
-		SYSTICK_InternalInit(100);
-
-		SYSTICK_IntCmd(ENABLE);
-
-		SYSTICK_Cmd(ENABLE);
-
 		flagRGB++;
+
+		counter=0;
 
 		return;
 	}
 
 	switch (flagRGB) {
 		case 1:
+			counter=0;
 			Apagar_LedRojo();
 			Prender_LedVerde();
 			flagRGB++;
 			break;
 		case 2:
+			counter=0;
 			Apagar_LedVerde();
 			Prender_LedAzul();
 			flagRGB++;
 			break;
 		case 3:
+			counter=0;
 			Apagar_LedAzul();
 			Prender_LedVerde();
 			flagOk=1;
@@ -154,7 +171,18 @@ int main(void) {
 	 */
 	init();
 	Apagar_todos();
+
+	first_init();
+
+	SYSTICK_InternalInit(100);
+
+	SYSTICK_IntCmd(ENABLE);
+	//Comienza el systick
+	SYSTICK_Cmd(ENABLE);
+
 	while(1){
+		//Aca queda el programa sleep (TODO)
+
     }
     return 0;
 }
@@ -271,7 +299,7 @@ void Configurar_SwitchInterrupt(){
 
 	external.EXTI_Line = EXTI_EINT0;
 	external.EXTI_Mode = EXTI_MODE_EDGE_SENSITIVE;
-	external.EXTI_Polarity = EXTI_POLARITY_LOW_ACTIVE_OR_FALLING_EDGE;
+	external.EXTI_polarity = EXTI_POLARITY_LOW_ACTIVE_OR_FALLING_EDGE;
 
 	EXTI_Config(&external);
 
@@ -293,4 +321,60 @@ BOOL_8 Verificar_LED(uint32_t PORT, uint32_t PIN_SELECT){
 	else{
 		return FALSE;
 	}
+}
+
+void delay_ms(uint32_t mili){
+
+	for(uint32_t i = 0; i< mili;i++){
+		for (uint32_t j = 0; j < 1000000; ++j) {
+
+		}
+	}
+
+	return;
+}
+
+/*!
+ * @brief Pregunta si la bandera de la EXTINT esta levanta o no
+ * @return False si esta baja y true sino esta levantada.
+ */
+
+BOOL_8 EXTI_CheckXTIFlag(EXTI_LINE_ENUM EXTILine)
+{
+	if(LPC_SC->EXTINT & (1 << EXTILine))
+	{
+		return FALSE;
+	}
+	else {
+		return TRUE;
+	}
+}
+void Prender_todos(){
+	Prender_LedAzul();
+	Prender_LedRojo();
+	Prender_LedVerde();
+	return;
+}
+
+void first_init(){
+	Prender_todos();
+	delay_ms(10);
+	Apagar_todos();
+
+	Prender_LedAzul();
+	delay_ms(10);
+	Apagar_LedAzul();
+	delay_ms(10);
+
+	Prender_LedVerde();
+	delay_ms(10);
+	Apagar_LedVerde();
+	delay_ms(10);
+
+	Prender_LedRojo();
+	delay_ms(10);
+	Apagar_LedRojo();
+	delay_ms(10);
+
+	Apagar_todos();
 }
